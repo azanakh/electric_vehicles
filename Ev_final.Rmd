@@ -1,0 +1,134 @@
+---
+title: "Electric Vehicles"
+author: "Azana Khan"
+date: "2022-11-18"
+output: html_document
+runtime: shiny
+theme: cyborg
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Importing libraries
+
+```{r eruptions, echo=FALSE}
+
+library(shiny)
+library(ggplot2)
+library(readr)
+library(plotly)
+library(gridExtra)
+```
+
+Importing Dataset
+
+```{r tabsets, echo=FALSE}
+
+ev_cars <- read_csv("C:/Users/User/OneDrive/Desktop/R/ElectricCarData_Clean.csv")
+
+```
+
+Exploratory Data Analysis
+
+```{r}
+str(ev_cars)
+
+dim(ev_cars)
+
+head(ev_cars)
+
+colnames(ev_cars)
+
+summary(ev_cars)
+
+sum(is.na(ev_cars))
+
+```
+
+UI of the shiny app
+
+```{r}
+
+
+ev_cars <- read_csv("C:/Users/User/OneDrive/Desktop/R/ElectricCarData_Clean.csv")
+vars <- setdiff(names(ev_cars), "Specs")
+var <- vars[-c(1,2,8,9,10,11,12,13,14)]
+selected = vars[[3]]
+
+  UI <- shinyUI(pageWithSidebar(
+  headerPanel('Electric Vehicles Information'),
+  sidebarPanel(
+    selectInput('Brand', 'Select the Brand', as.character(unique(ev_cars$Brand))),
+    #selectInput('ycol', 'Y Variable', vars[[14]]),
+    selectInput('xcol', 'Relation with Price in general', var)
+
+    
+  ),
+
+  mainPanel(
+    #Setting the multiplot size as 800x600 for better visibility
+    plotOutput('plot1',width = 800, height = 600),
+    plotOutput('plot2',width = 450, height = 450)
+  )
+))
+
+
+
+```
+
+Server of the shiny app
+```{r}
+
+
+Server<-shinyServer(
+  function(input, output,session) {
+
+    data <- reactive({ev_cars[ev_cars$Brand == input$Brand,]})
+    selectedData <- reactive({
+      ev_cars[, c(input$xcol, 'PriceEuro')]
+    })
+
+   
+     output$plot1 <- renderPlot({
+      
+      
+       
+      g1 <- ggplot(data(), aes(BodyStyle,PriceEuro))
+      g1 <- g1 + geom_boxplot( fill="blue", color = "black",alpha = 0.5)
+     
+      
+
+      g2 <- ggplot(data(), aes(PowerTrain,PriceEuro))
+      g2 <- g2 + geom_boxplot( fill="pink", color = "black",alpha = 0.5)
+     
+
+      g3 <- ggplot(data(), aes(PlugType,PriceEuro))
+      g3 <- g3 + geom_boxplot( fill="red", color = "black",alpha = 0.5)
+
+      g4 <- ggplot(data(), aes(RapidCharge,PriceEuro))
+      g4 <- g4 + geom_boxplot( fill="orange", color = "black",alpha = 0.5)
+      
+      
+      g5 <- ggplot(data(), aes(Segment))
+      g5 <- g5 + geom_bar(fill="green", color = "black",alpha = 0.5)
+      
+      #Plotting 5 graphs
+      grid.arrange(g1,g2,g3,g4,g5,nrow=3, ncol=2)
+      
+      
+    })
+     output$plot2 <- renderPlot({
+       
+       
+       par(mar = c(5.1, 4.1, 0, 1))
+       plot(selectedData(),
+            pch = 20, cex = 3,col="blue") 
+       
+       
+     })
+  }
+)
+
+shinyApp(ui= UI, server= Server)
+```
